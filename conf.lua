@@ -1,0 +1,12 @@
+title = "birday"
+shortname = "birday"
+author = "@xhiggy"
+appid = "faith.chilidog.bday"
+version = "1.0.0"
+
+display_name = "birday"
+dev_region = "en"
+supported_languages = "en"
+icon = "dog.png"
+launch_image = "img/i.png"
+orientation = "any"
