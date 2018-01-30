@@ -24,9 +24,9 @@ sanic.position2d = vec2(x+sx*20,y)
 
 cx = 256
 chest =	am.translate(cx,y) ^ am.scale(1) ^ am.sprite("img/c.png")
-message = am.translate(0,0).am.sprite("yeah.png")
+message = am.translate(0,0).am.sprite("img/yeah.png")
 message.hidden = true
-prompt = am.translate(96,160) ^ am.sprite("prompt.png")
+prompt = am.translate(96,160) ^ am.sprite("img/prompt.png")
 prompt.hidden = true
 
 part = am.particles2d{
@@ -43,7 +43,7 @@ part = am.particles2d{
 	start_particles = 1,
 
 	gravity = vec2(0,-2),
-	sprite_source = "dog.png",
+	sprite_source = "img/dog.png",
 }
 part1=am.particles2d{
     source_pos = vec2(-300,-420),
@@ -191,4 +191,4 @@ win.scene:action(function(scene)
 
 end)
 
-win.scene:action(am.play("song.ogg",true,1,0.25))
+win.scene:action(am.play("img/song.ogg",true,1,0.2))
