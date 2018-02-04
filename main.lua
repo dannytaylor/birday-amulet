@@ -1,5 +1,5 @@
 -- happy birday
-
+math.randomseed(os.time())
 local win = am.window{
     title = "it's ya birday",
     width = 960,
@@ -11,8 +11,13 @@ lock = false
 locktime = 3
 hover = false
 opened = false
-
-
+spawn_dog = -1
+if am.platform == "html" then
+	html = true
+else
+	html = false
+end
+html= true
 x = -256
 y = -32
 sanic =	am.translate(x,y) ^ am.scale(vec2(1,1)) ^ am.sprite("img/i.png")
@@ -23,28 +28,17 @@ state = "i"
 sanic.position2d = vec2(x+sx*20,y)
 
 cx = 256
+ty = -194
+tx = 0
 chest =	am.translate(cx,y) ^ am.scale(1) ^ am.sprite("img/c.png")
+touch =	am.translate(tx,ty) ^ am.sprite("img/x.png")
 message = am.translate(0,0).am.sprite("img/yeah.png")
 message.hidden = true
 prompt = am.translate(96,160) ^ am.sprite("img/prompt.png")
 prompt.hidden = true
 
-part = am.particles2d{
-	source_pos = vec2(0,360),
-	source_pos_var = vec2(16),
-	start_size = 64,
-	max_particles = 100,
-	life = 24,
-	angle = 1.5*math.pi,
-	angle_var = 0.4*math.pi,
-	speed = 32,
-	speed_var = 5,
-	emission_rate = 0.7,
-	start_particles = 1,
+chomp = am.load_audio("img/chomp.ogg")
 
-	gravity = vec2(0,-2),
-	sprite_source = "img/dog.png",
-}
 part1=am.particles2d{
     source_pos = vec2(-300,-420),
     source_pos_var = vec2(20),
@@ -88,15 +82,16 @@ part2=am.particles2d{
     gravity = vec2(0, 30),
 }
 
-part.hidden,part1.hidden,part2.hidden = true,true,true
+
+part1.hidden,part2.hidden = true,true
 
 sanic:action(function()
 	local dt = am.delta_time
-
+	local mx = win:mouse_position().x
+	local my = win:mouse_position().y
 	-- movement
 		state="i"
 		if win:mouse_down"left" and not lock then
-			local mx = win:mouse_position().x
 			if x < mx - ox and x < 408 then -- move right
 				x = x + vx*dt
 				sx = 1
@@ -126,7 +121,13 @@ sanic:action(function()
 		if not opened then
 			if x < cx + 100 and x > cx - 100 then
 				hover = true
-				if win:mouse_down"right" then
+				local ttest = false
+				if html and mx>tx-40 and mx<tx+40 and my>ty-40 and my<ty+40 and win:mouse_pressed"left" then
+					ttest = true
+				else
+					ttest = false
+				end
+				if win:mouse_down"right" or ttest then
 					-- local mx = win:mouse_position().x
 					-- local my = win:mouse_position().y
 					-- if mx < 100 and mx > -100 and my > -200 and my < -100 then
@@ -136,10 +137,9 @@ sanic:action(function()
 						sanic"scale".x = -1
 					end
 					opened = true
-					part"particles2d".reset()
 					part1"particles2d".reset()
 					part2"particles2d".reset()
-					part.hidden,part1.hidden,part2.hidden = false,false,false
+					part1.hidden,part2.hidden = false,false
 					chest"sprite".source = "img/c_open.png"
 					lock = true
 
@@ -150,6 +150,16 @@ sanic:action(function()
 				hover = false
 			end
 		end
+
+	-- cdog particles
+	if opened then
+		spawn_dog = spawn_dog + dt
+		if spawn_dog > 1.3 then
+			spawn_cdog()
+			spawn_dog = 0
+		end
+	end
+
 	-- anim
 		local frame = math.floor(am.current_time()*2)%2
 		if state == "i" or state == "h" then
@@ -159,9 +169,13 @@ sanic:action(function()
 
 	-- sprite hiding
 		if hover and not opened then
-			prompt.hidden = false
+			-- prompt.hidden = false
+			if html then
+				touch.hidden = false
+			end
 		else
 			prompt.hidden = true
+			touch.hidden = true
 		end
 		if opened and not lock or state == "h" then
 			message.hidden = false
@@ -171,22 +185,66 @@ sanic:action(function()
 
 end)
 
+dog_group = am.group()
 
 win.scene =
     am.group()
     ^ {
-    	part,
     	part1,
     	part2,
     	chest,
     	message,
+    	dog_group,
     	sanic,
     	prompt,
+    	touch,
     }
 
+num_dogs = 0
+start_dog = 0
+c_angle = {}
+function spawn_cdog()
+	local cdog = 
+		am.translate(math.random(-440,440),320):tag("t" .. tostring(num_dogs+start_dog))
+		^ am.rotate(0):tag("r" .. tostring(num_dogs+start_dog))
+			^ am.sprite("img/dog.png")
+    c_angle[num_dogs+start_dog] = math.random(0.8,1.8)
+	if num_dogs < 10 then
+		num_dogs = num_dogs + 1
+	else
+		start_dog = start_dog + 1
+		dog_group:remove(dog_group:child(1))
+	end
+	dog_group:append(cdog)			
+end
+
+cdog_angle = 0
 win.scene:action(function(scene)
+	local dt = am.delta_time
     if win:key_down"q" then
 		win:close()
+	end
+
+	
+	for i=start_dog,num_dogs+start_dog do
+		if 	dog_group("t" .. tostring(i)) then
+			dog_group("r" .. tostring(i)).angle = dog_group("r" .. tostring(i)).angle + c_angle[i]*dt
+			local dogv = dog_group("t" .. tostring(i)).position2d
+			local dy = dogv.y - 100*dt
+			local dx = dogv.x
+			dog_group("t" .. tostring(i)).position2d = vec2(dx,dy)
+
+			if win:mouse_pressed"left" then
+				local mx = win:mouse_position().x
+				local my = win:mouse_position().y
+				local box = 48
+				if mx > dx-box and mx<dx+box and my>dy-box and my<dy+box and not dog_group("t" .. tostring(i)).hidden then
+					dog_group("t" .. tostring(i)).hidden = true
+					scene:action(am.play(chomp,false,1,0.2))
+				end
+			end
+		end	
+
 	end
 
 end)
